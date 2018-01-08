@@ -7,8 +7,6 @@ import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.io.UnsupportedEncodingException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class Reproducer {
     public static void main(String[] args) {
@@ -37,7 +35,7 @@ public class Reproducer {
         }
 
         // --------------------------- VERTX --------------------------------------//
-        // connect -> subscribe to "my_app/report/#" -> publishing "Hello from Vertx(++): multi level my_app message" messages a lot of times
+        // connect -> subscribe to "my_app/report/#"
         vertxMqttClient.subscribeCompletionHandler(h -> {
             System.out.println("[VERTX] Subscribe complete, levels" + h.grantedQoSLevels());
             vertxMqttClient.publish("my_app/report/new", Buffer.buffer("Hello from Vertx(++): multi level my_app message"), MqttQoS.valueOf(qos), false, false);
@@ -45,11 +43,9 @@ public class Reproducer {
 
         vertxMqttClient.publishHandler(s -> {
             try {
-                Thread.sleep(1000);
                 String message = new String(s.payload().getBytes(), "UTF-8");
                 System.out.println(String.format("[VERTX] Receive message with content: \"%s\" from topic \"%s\"", message, s.topicName()));
-                vertxMqttClient.publish(topic, Buffer.buffer("Hello from Vertx(++): multi level my_app message"), MqttQoS.valueOf(qos), false, false);
-            } catch (UnsupportedEncodingException | InterruptedException e) {
+            } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         });
@@ -59,13 +55,10 @@ public class Reproducer {
         });
 
         // --------------------------- PAHO --------------------------------------//
-        // connect -> subscribe to "my_app/report/#" -> publishing "Hello From Paho(**): multi level my_app message" messages a lot of times
-
+        // connect -> subscribe to "my_app/report/#"
         try {
             pahoMqttClient.connect(pahoMqttConnectOptions);
-            final org.eclipse.paho.client.mqttv3.MqttClient finalPahoMqttClient = pahoMqttClient;
             pahoMqttClient.subscribe("my_app/report/#", qos, (topicWithUpdates, message) -> {
-                Thread.sleep(1000);
                 System.out.println(String.format("[PAHO] Receive message with content: \"%s\" from topic \"%s\"", message, topicWithUpdates));
             });
             pahoMqttClient.setCallback(new MqttCallback() {
@@ -77,17 +70,29 @@ public class Reproducer {
                 @Override
                 public void messageArrived(String topicWithUpdates, MqttMessage message) throws Exception {
                     System.out.println(String.format("[PAHO] Receive message with content: \"%s\" from topic \"%s\"", message, topicWithUpdates));
-                    MqttMessage message1 = new MqttMessage("Hello From Paho(**): multi level my_app message".getBytes());
-                    message1.setQos(qos);
-                    finalPahoMqttClient.publish(topic, message1);
                 }
 
                 @Override
                 public void deliveryComplete(IMqttDeliveryToken token) {
-
                 }
             });
-        } catch (MqttException e) {
+
+
+            // wait for subscription completion and connection establishment
+            Thread.sleep(1000);
+
+            // both paho and vertx mqtt client send 2 messages
+            for (int i = 0; i < 2; i++) {
+                MqttMessage message1 = new MqttMessage("Hello From Paho(**): multi level my_app message".getBytes());
+                message1.setQos(qos);
+                pahoMqttClient.publish(topic, message1);
+                vertxMqttClient.publish(topic, Buffer.buffer("Hello from Vertx(++): multi level my_app message"), MqttQoS.valueOf(qos), false, false);
+            }
+
+            // wait for message decipherment
+            Thread.sleep(5000);
+            System.exit(0);
+        } catch (MqttException | InterruptedException e) {
             e.printStackTrace();
         }
     }
