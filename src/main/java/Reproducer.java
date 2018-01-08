@@ -11,7 +11,6 @@ import java.io.UnsupportedEncodingException;
 public class Reproducer {
     public static void main(String[] args) {
 
-
         String broker = "localhost";
         int port = 1884;
         int qos = 0;
@@ -49,7 +48,6 @@ public class Reproducer {
             }
         });
         vertxMqttClient.connect(port, broker, s -> {
-            // subscribe to all subtopics
             vertxMqttClient.subscribe("my_app/report/#", qos);
         });
 
