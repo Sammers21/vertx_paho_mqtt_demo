@@ -62,9 +62,7 @@ public class Reproducer {
             });
             pahoMqttClient.setCallback(new MqttCallback() {
                 @Override
-                public void connectionLost(Throwable cause) {
-
-                }
+                public void connectionLost(Throwable cause) { }
 
                 @Override
                 public void messageArrived(String topicWithUpdates, MqttMessage message) throws Exception {
@@ -72,10 +70,8 @@ public class Reproducer {
                 }
 
                 @Override
-                public void deliveryComplete(IMqttDeliveryToken token) {
-                }
+                public void deliveryComplete(IMqttDeliveryToken token) { }
             });
-
 
             // wait for subscription completion and connection establishment
             Thread.sleep(1000);
@@ -88,7 +84,7 @@ public class Reproducer {
                 vertxMqttClient.publish(topic, Buffer.buffer("Hello from Vertx(++): multi level my_app message"), MqttQoS.valueOf(qos), false, false);
             }
 
-            // wait some time ... client should receive messages
+            // wait for some time ... clients should receive messages
             Thread.sleep(5000);
             System.exit(0);
         } catch (MqttException | InterruptedException e) {
