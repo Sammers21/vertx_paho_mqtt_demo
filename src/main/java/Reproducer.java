@@ -88,7 +88,7 @@ public class Reproducer {
                 vertxMqttClient.publish(topic, Buffer.buffer("Hello from Vertx(++): multi level my_app message"), MqttQoS.valueOf(qos), false, false);
             }
 
-            // wait for message decipherment
+            // wait some time ... client should receive messages
             Thread.sleep(5000);
             System.exit(0);
         } catch (MqttException | InterruptedException e) {
