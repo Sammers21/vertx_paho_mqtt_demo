@@ -38,7 +38,6 @@ public class Reproducer {
         // connect -> subscribe to "my_app/report/#"
         vertxMqttClient.subscribeCompletionHandler(h -> {
             System.out.println("[VERTX] Subscribe complete, levels" + h.grantedQoSLevels());
-            vertxMqttClient.publish("my_app/report/new", Buffer.buffer("Hello from Vertx(++): multi level my_app message"), MqttQoS.valueOf(qos), false, false);
         });
 
         vertxMqttClient.publishHandler(s -> {
